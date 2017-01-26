@@ -6,7 +6,7 @@
   "author": "yura",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon app.js",
+    "start": "nodemon webpack.config.js",
     "dev": "webpack -d --watch",
     "build" : "webpack -p"
   },

@@ -166,7 +166,7 @@
 						' '
 					),
 					_react2.default.createElement('canvas', { id: 'prev' }),
-					_react2.default.createElement('video', { id: 'img' })
+					_react2.default.createElement('img', { id: 'img' })
 				);
 			}
 		}]);

@@ -80,7 +80,7 @@ class App extends React.Component {
 		<video id="video"> </video>
 		<canvas id="prev"></canvas>
 
-		<video id="img"></video>
+		<img id="img" />
       </div>
     );
   }
