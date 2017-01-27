@@ -5,9 +5,9 @@ var path = require('path');
 var fs = require('fs');
 var express = require("express");
 var app = new express();
-// Устанавливаем порт, по умолчанию 8888
+
 var port = process.env.PORT || 8888;
-// Проверка, используем ли мы HTTPS (SSL) , по умолчанию да
+
 var ssl = (process.env.SSL == null || process.env.SSL != 0) ? 1:0;
 if(ssl==1) {
 //  var https = require('https');
@@ -33,14 +33,16 @@ app.get("/", function(req, res) {
 });
 
 server.listen(port, function() {
-  log.info("запущен на %s порт", port);
+  log.info("Started on %s port", port);
 });
 
 io.on("connection", function(socket) {
-  log.info("Новый клиент");
-  // Вещаем видео всем клиентам
-  socket.on("stream", function(img) {
-    socket.broadcast.emit("stream", img);
+  log.info("New client");
+  socket.on("stream", function(vid) {
+    socket.broadcast.emit("stream", vid);
+  });
+  socket.on("canvstream", function(canvimg) {
+    socket.broadcast.emit("canvstream", canvimg);
   });
 });
 
