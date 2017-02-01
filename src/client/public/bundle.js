@@ -57,9 +57,13 @@
 	
 	var _reactDom = __webpack_require__(/*! react-dom */ 158);
 	
-	var _AwesomeComponent = __webpack_require__(/*! ./AwesomeComponent.jsx */ 159);
+	var _Whiteboard = __webpack_require__(/*! ./Whiteboard.jsx */ 159);
 	
-	var _AwesomeComponent2 = _interopRequireDefault(_AwesomeComponent);
+	var _Whiteboard2 = _interopRequireDefault(_Whiteboard);
+	
+	var _Chat = __webpack_require__(/*! ./Chat.jsx */ 160);
+	
+	var _Chat2 = _interopRequireDefault(_Chat);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -69,7 +73,7 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
-	var io = __webpack_require__(/*! socket.io-client */ 160);
+	var io = __webpack_require__(/*! socket.io-client */ 161);
 	var socket = io();
 	
 	var App = function (_React$Component) {
@@ -82,15 +86,9 @@
 		}
 	
 		_createClass(App, [{
-			key: 'logger',
-			value: function logger(msg) {
-				$("#logger").text(msg);
-			}
-		}, {
 			key: 'stream',
 			value: function stream() {
-				$("#cvideostream").show();
-				$("#canvasstream").show();
+				// $("#cvideostream").show();
 				var canv = document.getElementById("cvideostream"),
 				    context = canv.getContext("2d"),
 				    video = document.getElementById("vvideostream"),
@@ -102,66 +100,41 @@
 				context.width = canv.width;
 				context.height = canv.height;
 	
-				var mycanv = document.getElementById("canvasstream");
-				var canvas = mycanv;
-				var ctx = canvas.getContext('2d');
-	
-				// canvas.width = $(window).width() ;
-				// canvas.height = $(window).height();
-				canvas.width = 640;
-				canvas.height = 480;
-	
-				var mouse = { x: 0, y: 0 };
-	
-				/* Mouse Capturing Work */
-				canvas.addEventListener('mousemove', function (e) {
-					mouse.x = e.pageX - this.offsetLeft;
-					mouse.y = e.pageY - this.offsetTop;
-				}, false);
-	
-				/* Drawing on Paint App */
-				ctx.lineWidth = 5;
-				ctx.lineJoin = 'round';
-				ctx.lineCap = 'round';
-				ctx.strokeStyle = 'blue';
-	
-				canvas.addEventListener('mousedown', function (e) {
-					ctx.beginPath();
-					ctx.moveTo(mouse.x, mouse.y);
-	
-					canvas.addEventListener('mousemove', onPaint, false);
-				}, false);
-	
-				canvas.addEventListener('mouseup', function () {
-					canvas.removeEventListener('mousemove', onPaint, false);
-				}, false);
-	
-				var onPaint = function onPaint() {
-					ctx.lineTo(mouse.x, mouse.y);
-					ctx.stroke();
-				};
-	
 				function loadCam(stream) {
 					video.src = window.URL.createObjectURL(stream);
-					// logger("Camera loaded [OKAY]");
+					video.volume = 0;
+					video.controls = true;
+					console.log("Camera loaded");
+	
+					// var mediaRecorder = new MediaRecorder(stream);
+					//    mediaRecorder.onstart = function(e) {
+					//        this.chunks = [];
+					//    };
+					//    mediaRecorder.ondataavailable = function(e) {
+					//    	//console.log(this.chunks);
+					//        this.chunks.push(e.data);
+					//    	var blob = new Blob(this.chunks, { 'type' : 'video/webm; codecs="vorbis,vp8"' });
+					//        socket.emit('stream', blob);
+					//        //console.log(blob);
+					//    };
+	
+					//    mediaRecorder.start(3000);
 				}
 	
 				function loadFail(stream) {
-					// logger("Failed loading camera");
+					console.log("Failed loading camera");
 				}
 	
 				function viewVideo(video, context) {
 					context.drawImage(video, 0, 0, context.width, context.height);
-					socket.emit("stream", canv.toDataURL("video/webp"));
-					// debugger;
-					socket.emit("canvstream", mycanv.toDataURL("image/webp"));
+					socket.emit("teststream", canv.toDataURL("img/webp"));
 				}
 	
 				$(function () {
 					navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 	
 					if (navigator.getUserMedia) {
-						navigator.getUserMedia({ video: true }, loadCam, loadFail);
+						navigator.getUserMedia({ video: true, audio: true }, loadCam, loadFail);
 					}
 					setInterval(function () {
 						viewVideo(video, context);
@@ -174,17 +147,26 @@
 				$("#videoview").show();
 				$("#canvview").show();
 				var img = document.getElementById("canvview");
-				img.width = $(window).width();
-				img.height = $(window).height();
-				// logger("Waiting stream..");
-				socket.on("stream", function (video) {
+				img.width = 320;
+				img.height = 240;
+				console.log("Waiting stream..");
+	
+				socket.on('stream', function (arrayBuffer) {
+					console.log("start");
 					var vid = document.getElementById("videoview");
-					vid.src = video;
-					// logger("Stream is started");
+					vid.controls = true;
+					var blob = new Blob([arrayBuffer], { 'type': 'video/webm; codecs="vorbis,vp8"' });
+	
+					socket.emit('stream', blob);
+					vid.src = window.URL.createObjectURL(blob);
+					console.log(blob);
+					if (vid.paused) {
+						vid.play();
+					}
 				});
-				socket.on("canvstream", function (canvimg) {
+	
+				socket.on("teststream", function (canvimg) {
 					img.src = canvimg;
-					// logger("Stream is started");
 				});
 			}
 		}, {
@@ -193,11 +175,6 @@
 				return _react2.default.createElement(
 					'div',
 					null,
-					_react2.default.createElement(
-						'p',
-						null,
-						' Hello React!'
-					),
 					_react2.default.createElement(
 						'button',
 						{ className: 'viewBtn', onClick: this.view },
@@ -208,15 +185,16 @@
 						{ className: 'streamBtn', onClick: this.stream },
 						'stream'
 					),
-					_react2.default.createElement('div', { id: 'logger' }),
+					_react2.default.createElement(_Whiteboard2.default, null),
+					_react2.default.createElement(_Chat2.default, null),
 					_react2.default.createElement(
 						'video',
-						{ id: 'vvideostream' },
+						{ id: 'vvideostream', autoPlay: true },
 						' '
 					),
 					_react2.default.createElement('canvas', { id: 'cvideostream' }),
 					_react2.default.createElement('canvas', { id: 'canvasstream' }),
-					_react2.default.createElement('img', { id: 'videoview' }),
+					_react2.default.createElement('video', { id: 'videoview', autoPlay: true }),
 					_react2.default.createElement('img', { id: 'canvview' })
 				);
 			}
@@ -20397,9 +20375,9 @@
 
 /***/ },
 /* 159 */
-/*!*********************************************!*\
-  !*** ./src/client/app/AwesomeComponent.jsx ***!
-  \*********************************************/
+/*!***************************************!*\
+  !*** ./src/client/app/Whiteboard.jsx ***!
+  \***************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -20422,57 +20400,534 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
-	var AwesomeComponent = function (_React$Component) {
-	  _inherits(AwesomeComponent, _React$Component);
+	var socket = io();
 	
-	  function AwesomeComponent(props) {
-	    _classCallCheck(this, AwesomeComponent);
+	var Whiteboard = function (_React$Component) {
+	  _inherits(Whiteboard, _React$Component);
 	
-	    var _this = _possibleConstructorReturn(this, (AwesomeComponent.__proto__ || Object.getPrototypeOf(AwesomeComponent)).call(this, props));
+	  _createClass(Whiteboard, [{
+	    key: 'init',
+	    value: function init() {
+	      $(function () {
+	        var canvas = document.getElementsByClassName('whiteboard')[0];
+	        var colors = document.getElementsByClassName('color');
+	        var context = canvas.getContext('2d');
+	
+	        var current = {
+	          color: 'black'
+	        };
+	        var drawing = false;
+	
+	        canvas.addEventListener('mousedown', onMouseDown, false);
+	        canvas.addEventListener('mouseup', onMouseUp, false);
+	        canvas.addEventListener('mouseout', onMouseUp, false);
+	        canvas.addEventListener('mousemove', throttle(onMouseMove, 10), false);
+	
+	        for (var i = 0; i < colors.length; i++) {
+	          colors[i].addEventListener('click', onColorUpdate, false);
+	        }
+	
+	        socket.on('drawing', onDrawingEvent);
+	
+	        window.addEventListener('resize', onResize, false);
+	        onResize();
+	
+	        function drawLine(x0, y0, x1, y1, color, emit) {
+	          context.beginPath();
+	          context.moveTo(x0, y0);
+	          context.lineTo(x1, y1);
+	          context.strokeStyle = color;
+	          context.lineWidth = 2;
+	          context.stroke();
+	          context.closePath();
+	
+	          if (!emit) {
+	            return;
+	          }
+	          var w = canvas.width;
+	          var h = canvas.height;
+	
+	          socket.emit('drawing', {
+	            x0: x0 / w,
+	            y0: y0 / h,
+	            x1: x1 / w,
+	            y1: y1 / h,
+	            color: color
+	          });
+	        }
+	
+	        function onMouseDown(e) {
+	          drawing = true;
+	          current.x = e.clientX;
+	          current.y = e.clientY;
+	        }
+	
+	        function onMouseUp(e) {
+	          if (!drawing) {
+	            return;
+	          }
+	          drawing = false;
+	          drawLine(current.x, current.y, e.clientX, e.clientY, current.color, true);
+	        }
+	
+	        function onMouseMove(e) {
+	          if (!drawing) {
+	            return;
+	          }
+	          drawLine(current.x, current.y, e.clientX, e.clientY, current.color, true);
+	          current.x = e.clientX;
+	          current.y = e.clientY;
+	        }
+	
+	        function onColorUpdate(e) {
+	          current.color = e.target.className.split(' ')[1];
+	        }
+	
+	        // limit the number of events per second
+	        function throttle(callback, delay) {
+	          var previousCall = new Date().getTime();
+	          return function () {
+	            var time = new Date().getTime();
+	
+	            if (time - previousCall >= delay) {
+	              previousCall = time;
+	              callback.apply(null, arguments);
+	            }
+	          };
+	        }
+	
+	        function onDrawingEvent(data) {
+	          var w = canvas.width;
+	          var h = canvas.height;
+	          drawLine(data.x0 * w, data.y0 * h, data.x1 * w, data.y1 * h, data.color);
+	        }
+	
+	        // make the canvas fill its parent
+	        function onResize() {
+	          canvas.width = window.innerWidth;
+	          canvas.height = window.innerHeight;
+	        }
+	      });
+	    }
+	  }]);
+	
+	  function Whiteboard(props) {
+	    _classCallCheck(this, Whiteboard);
+	
+	    var _this = _possibleConstructorReturn(this, (Whiteboard.__proto__ || Object.getPrototypeOf(Whiteboard)).call(this, props));
 	
 	    _this.state = { likesCount: 0 };
 	    _this.onLike = _this.onLike.bind(_this);
 	    return _this;
 	  }
 	
-	  _createClass(AwesomeComponent, [{
+	  _createClass(Whiteboard, [{
 	    key: 'onLike',
 	    value: function onLike() {
 	      var newLikesCount = this.state.likesCount + 1;
 	      this.setState({ likesCount: newLikesCount });
 	    }
 	  }, {
+	    key: 'showColorPanel',
+	    value: function showColorPanel() {
+	      if ($('.colors').css('display') == "none") $(".chooseColorBtn").animate({ left: '245px' }, "fast");else $(".chooseColorBtn").animate({ left: '10px' });
+	      $(".colors").fadeToggle("fast");
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
+	      this.init();
+	
 	      return _react2.default.createElement(
 	        'div',
 	        null,
-	        'Likes : ',
-	        _react2.default.createElement(
-	          'span',
-	          null,
-	          this.state.likesCount
-	        ),
+	        _react2.default.createElement('button', { className: 'chooseColorBtn', onClick: this.showColorPanel }),
+	        _react2.default.createElement('canvas', { className: 'whiteboard' }),
 	        _react2.default.createElement(
 	          'div',
-	          null,
+	          { className: 'colors' },
+	          _react2.default.createElement('div', { className: 'color black' }),
+	          _react2.default.createElement('div', { className: 'color red' }),
+	          _react2.default.createElement('div', { className: 'color green' }),
+	          _react2.default.createElement('div', { className: 'color blue' }),
+	          _react2.default.createElement('div', { className: 'color yellow' })
+	        )
+	      );
+	    }
+	  }]);
+	
+	  return Whiteboard;
+	}(_react2.default.Component);
+	
+	exports.default = Whiteboard;
+
+/***/ },
+/* 160 */
+/*!*********************************!*\
+  !*** ./src/client/app/Chat.jsx ***!
+  \*********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _react = __webpack_require__(/*! react */ 1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var socket = io();
+	
+	var Chat = function (_React$Component) {
+	  _inherits(Chat, _React$Component);
+	
+	  function Chat() {
+	    _classCallCheck(this, Chat);
+	
+	    return _possibleConstructorReturn(this, (Chat.__proto__ || Object.getPrototypeOf(Chat)).apply(this, arguments));
+	  }
+	
+	  _createClass(Chat, [{
+	    key: 'init',
+	    value: function init() {
+	      $(function () {
+	        var FADE_TIME = 150; // ms
+	        var TYPING_TIMER_LENGTH = 400; // ms
+	        var COLORS = ['#e21400', '#91580f', '#f8a700', '#f78b00', '#58dc00', '#287b00', '#a8f07a', '#4ae8c4', '#3b88eb', '#3824aa', '#a700ff', '#d300e7'];
+	
+	        // Initialize variables
+	        var $window = $(window);
+	        var $usernameInput = $('.usernameInput'); // Input for username
+	        var $messages = $('.messages'); // Messages area
+	        var $inputMessage = $('.inputMessage'); // Input message input box
+	
+	        var $loginPage = $('.login.page'); // The login page
+	        var $chatPage = $('.chat.page'); // The chatroom page
+	
+	        // Prompt for setting a username
+	        var username;
+	        var connected = false;
+	        var typing = false;
+	        var lastTypingTime;
+	        var $currentInput = $usernameInput.focus();
+	
+	        // $('.pages').hide();
+	
+	        function addParticipantsMessage(data) {
+	          var message = '';
+	          if (data.numUsers === 1) {
+	            message += "there's 1 participant";
+	          } else {
+	            message += "there are " + data.numUsers + " participants";
+	          }
+	          log(message);
+	        }
+	
+	        // Sets the client's username
+	        function setUsername() {
+	          username = cleanInput($usernameInput.val().trim());
+	
+	          // If the username is valid
+	          if (username) {
+	            $loginPage.fadeOut();
+	            $chatPage.show();
+	            $loginPage.off('click');
+	            $currentInput = $inputMessage.focus();
+	            // Tell the server your username
+	            socket.emit('add user', username);
+	          }
+	        }
+	
+	        // Sends a chat message
+	        function sendMessage() {
+	          var message = $inputMessage.val();
+	          // Prevent markup from being injected into the message
+	          message = cleanInput(message);
+	          // if there is a non-empty message and a socket connection
+	          if (message && connected) {
+	            $inputMessage.val('');
+	            addChatMessage({
+	              username: username,
+	              message: message
+	            });
+	            // tell server to execute 'new message' and send along one parameter
+	            socket.emit('new message', message);
+	          }
+	        }
+	
+	        // Log a message
+	        function log(message, options) {
+	          var $el = $('<li>').addClass('log').text(message);
+	          addMessageElement($el, options);
+	        }
+	
+	        // Adds the visual chat message to the message list
+	        function addChatMessage(data, options) {
+	          // Don't fade the message in if there is an 'X was typing'
+	          var $typingMessages = getTypingMessages(data);
+	          options = options || {};
+	          if ($typingMessages.length !== 0) {
+	            options.fade = false;
+	            $typingMessages.remove();
+	          }
+	
+	          var $usernameDiv = $('<span class="username"/>').text(data.username).css('color', getUsernameColor(data.username));
+	          var $messageBodyDiv = $('<span class="messageBody">').text(data.message);
+	
+	          var typingClass = data.typing ? 'typing' : '';
+	          var $messageDiv = $('<li class="message"/>').data('username', data.username).addClass(typingClass).append($usernameDiv, $messageBodyDiv);
+	
+	          addMessageElement($messageDiv, options);
+	        }
+	
+	        // Adds the visual chat typing message
+	        function addChatTyping(data) {
+	          data.typing = true;
+	          data.message = 'is typing';
+	          addChatMessage(data);
+	        }
+	
+	        // Removes the visual chat typing message
+	        function removeChatTyping(data) {
+	          getTypingMessages(data).fadeOut(function () {
+	            $(this).remove();
+	          });
+	        }
+	
+	        // Adds a message element to the messages and scrolls to the bottom
+	        // el - The element to add as a message
+	        // options.fade - If the element should fade-in (default = true)
+	        // options.prepend - If the element should prepend
+	        //   all other messages (default = false)
+	        function addMessageElement(el, options) {
+	          var $el = $(el);
+	
+	          // Setup default options
+	          if (!options) {
+	            options = {};
+	          }
+	          if (typeof options.fade === 'undefined') {
+	            options.fade = true;
+	          }
+	          if (typeof options.prepend === 'undefined') {
+	            options.prepend = false;
+	          }
+	
+	          // Apply options
+	          if (options.fade) {
+	            $el.hide().fadeIn(FADE_TIME);
+	          }
+	          if (options.prepend) {
+	            $messages.prepend($el);
+	          } else {
+	            $messages.append($el);
+	          }
+	          $messages[0].scrollTop = $messages[0].scrollHeight;
+	        }
+	
+	        // Prevents input from having injected markup
+	        function cleanInput(input) {
+	          return $('<div/>').text(input).text();
+	        }
+	
+	        // Updates the typing event
+	        function updateTyping() {
+	          if (connected) {
+	            if (!typing) {
+	              typing = true;
+	              socket.emit('typing');
+	            }
+	            lastTypingTime = new Date().getTime();
+	
+	            setTimeout(function () {
+	              var typingTimer = new Date().getTime();
+	              var timeDiff = typingTimer - lastTypingTime;
+	              if (timeDiff >= TYPING_TIMER_LENGTH && typing) {
+	                socket.emit('stop typing');
+	                typing = false;
+	              }
+	            }, TYPING_TIMER_LENGTH);
+	          }
+	        }
+	
+	        // Gets the 'X is typing' messages of a user
+	        function getTypingMessages(data) {
+	          return $('.typing.message').filter(function (i) {
+	            return $(this).data('username') === data.username;
+	          });
+	        }
+	
+	        // Gets the color of a username through our hash function
+	        function getUsernameColor(username) {
+	          // Compute hash code
+	          var hash = 7;
+	          for (var i = 0; i < username.length; i++) {
+	            hash = username.charCodeAt(i) + (hash << 5) - hash;
+	          }
+	          // Calculate color
+	          var index = Math.abs(hash % COLORS.length);
+	          return COLORS[index];
+	        }
+	
+	        // Keyboard events
+	
+	        $window.keydown(function (event) {
+	          // Auto-focus the current input when a key is typed
+	          if (!(event.ctrlKey || event.metaKey || event.altKey)) {
+	            $currentInput.focus();
+	          }
+	          // When the client hits ENTER on their keyboard
+	          if (event.which === 13) {
+	            if (username) {
+	              sendMessage();
+	              socket.emit('stop typing');
+	              typing = false;
+	            } else {
+	              setUsername();
+	            }
+	          }
+	        });
+	
+	        $inputMessage.on('input', function () {
+	          updateTyping();
+	        });
+	
+	        // Click events
+	
+	        // Focus input when clicking anywhere on login page
+	        $loginPage.click(function () {
+	          $currentInput.focus();
+	        });
+	
+	        // Focus input when clicking on the message input's border
+	        $inputMessage.click(function () {
+	          $inputMessage.focus();
+	        });
+	
+	        // Socket events
+	
+	        // Whenever the server emits 'login', log the login message
+	        socket.on('login', function (data) {
+	          connected = true;
+	          // Display the welcome message
+	          var message = "Welcome to Socket.IO Chat – ";
+	          log(message, {
+	            prepend: true
+	          });
+	          addParticipantsMessage(data);
+	        });
+	
+	        // Whenever the server emits 'new message', update the chat body
+	        socket.on('new message', function (data) {
+	          addChatMessage(data);
+	        });
+	
+	        // Whenever the server emits 'user joined', log it in the chat body
+	        socket.on('user joined', function (data) {
+	          log(data.username + ' joined');
+	          addParticipantsMessage(data);
+	        });
+	
+	        // Whenever the server emits 'user left', log it in the chat body
+	        socket.on('user left', function (data) {
+	          log(data.username + ' left');
+	          addParticipantsMessage(data);
+	          removeChatTyping(data);
+	        });
+	
+	        // Whenever the server emits 'typing', show the typing message
+	        socket.on('typing', function (data) {
+	          addChatTyping(data);
+	        });
+	
+	        // Whenever the server emits 'stop typing', kill the typing message
+	        socket.on('stop typing', function (data) {
+	          removeChatTyping(data);
+	        });
+	
+	        socket.on('disconnect', function () {
+	          log('you have been disconnected');
+	        });
+	
+	        socket.on('reconnect', function () {
+	          log('you have been reconnected');
+	          if (username) {
+	            socket.emit('add user', username);
+	          }
+	        });
+	
+	        socket.on('reconnect_error', function () {
+	          log('attempt to reconnect has failed');
+	        });
+	      });
+	    }
+	  }, {
+	    key: 'showChat',
+	    value: function showChat() {
+	      // $('.pages').show();
+	      if ($('.pages').css('display') == "none") $(".showChatBtn").animate({ bottom: '310px' }, "fast");else $(".showChatBtn").animate({ bottom: '10px' });
+	      $(".pages").fadeToggle("fast");
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      this.init();
+	
+	      return _react2.default.createElement(
+	        'div',
+	        null,
+	        _react2.default.createElement('button', { className: 'showChatBtn', onClick: this.showChat }),
+	        _react2.default.createElement(
+	          'ul',
+	          { className: 'pages' },
 	          _react2.default.createElement(
-	            'button',
-	            { onClick: this.onLike },
-	            'Like Me'
+	            'li',
+	            { className: 'chat page' },
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'chatArea' },
+	              _react2.default.createElement('ul', { className: 'messages' })
+	            ),
+	            _react2.default.createElement('input', { className: 'inputMessage', placeholder: 'Type here...' })
+	          ),
+	          _react2.default.createElement(
+	            'li',
+	            { className: 'login page' },
+	            _react2.default.createElement(
+	              'div',
+	              { className: 'form' },
+	              _react2.default.createElement(
+	                'h3',
+	                { className: 'title' },
+	                'What\'s your nickname?'
+	              ),
+	              _react2.default.createElement('input', { className: 'usernameInput', type: 'text', maxLength: '14' })
+	            )
 	          )
 	        )
 	      );
 	    }
 	  }]);
 	
-	  return AwesomeComponent;
+	  return Chat;
 	}(_react2.default.Component);
 	
-	exports.default = AwesomeComponent;
+	exports.default = Chat;
 
 /***/ },
-/* 160 */
+/* 161 */
 /*!*****************************************!*\
   !*** ./~/socket.io-client/lib/index.js ***!
   \*****************************************/
@@ -20483,10 +20938,10 @@
 	 * Module dependencies.
 	 */
 	
-	var url = __webpack_require__(/*! ./url */ 161);
-	var parser = __webpack_require__(/*! socket.io-parser */ 166);
-	var Manager = __webpack_require__(/*! ./manager */ 177);
-	var debug = __webpack_require__(/*! debug */ 163)('socket.io-client');
+	var url = __webpack_require__(/*! ./url */ 162);
+	var parser = __webpack_require__(/*! socket.io-parser */ 167);
+	var Manager = __webpack_require__(/*! ./manager */ 178);
+	var debug = __webpack_require__(/*! debug */ 164)('socket.io-client');
 	
 	/**
 	 * Module exports.
@@ -20585,12 +21040,12 @@
 	 * @api public
 	 */
 	
-	exports.Manager = __webpack_require__(/*! ./manager */ 177);
-	exports.Socket = __webpack_require__(/*! ./socket */ 207);
+	exports.Manager = __webpack_require__(/*! ./manager */ 178);
+	exports.Socket = __webpack_require__(/*! ./socket */ 208);
 
 
 /***/ },
-/* 161 */
+/* 162 */
 /*!***************************************!*\
   !*** ./~/socket.io-client/lib/url.js ***!
   \***************************************/
@@ -20601,8 +21056,8 @@
 	 * Module dependencies.
 	 */
 	
-	var parseuri = __webpack_require__(/*! parseuri */ 162);
-	var debug = __webpack_require__(/*! debug */ 163)('socket.io-client:url');
+	var parseuri = __webpack_require__(/*! parseuri */ 163);
+	var debug = __webpack_require__(/*! debug */ 164)('socket.io-client:url');
 	
 	/**
 	 * Module exports.
@@ -20675,7 +21130,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 162 */
+/* 163 */
 /*!*****************************!*\
   !*** ./~/parseuri/index.js ***!
   \*****************************/
@@ -20723,7 +21178,7 @@
 
 
 /***/ },
-/* 163 */
+/* 164 */
 /*!***********************************************!*\
   !*** ./~/socket.io-client/~/debug/browser.js ***!
   \***********************************************/
@@ -20736,7 +21191,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(/*! ./debug */ 164);
+	exports = module.exports = __webpack_require__(/*! ./debug */ 165);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -20910,7 +21365,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../../process/browser.js */ 4)))
 
 /***/ },
-/* 164 */
+/* 165 */
 /*!*********************************************!*\
   !*** ./~/socket.io-client/~/debug/debug.js ***!
   \*********************************************/
@@ -20929,7 +21384,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(/*! ms */ 165);
+	exports.humanize = __webpack_require__(/*! ms */ 166);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -21119,7 +21574,7 @@
 
 
 /***/ },
-/* 165 */
+/* 166 */
 /*!***********************!*\
   !*** ./~/ms/index.js ***!
   \***********************/
@@ -21277,7 +21732,7 @@
 
 
 /***/ },
-/* 166 */
+/* 167 */
 /*!*************************************!*\
   !*** ./~/socket.io-parser/index.js ***!
   \*************************************/
@@ -21288,11 +21743,11 @@
 	 * Module dependencies.
 	 */
 	
-	var debug = __webpack_require__(/*! debug */ 167)('socket.io-parser');
-	var json = __webpack_require__(/*! json3 */ 170);
-	var Emitter = __webpack_require__(/*! component-emitter */ 173);
-	var binary = __webpack_require__(/*! ./binary */ 174);
-	var isBuf = __webpack_require__(/*! ./is-buffer */ 176);
+	var debug = __webpack_require__(/*! debug */ 168)('socket.io-parser');
+	var json = __webpack_require__(/*! json3 */ 171);
+	var Emitter = __webpack_require__(/*! component-emitter */ 174);
+	var binary = __webpack_require__(/*! ./binary */ 175);
+	var isBuf = __webpack_require__(/*! ./is-buffer */ 177);
 	
 	/**
 	 * Protocol version.
@@ -21690,7 +22145,7 @@
 
 
 /***/ },
-/* 167 */
+/* 168 */
 /*!***********************************************!*\
   !*** ./~/socket.io-parser/~/debug/browser.js ***!
   \***********************************************/
@@ -21703,7 +22158,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(/*! ./debug */ 168);
+	exports = module.exports = __webpack_require__(/*! ./debug */ 169);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -21867,7 +22322,7 @@
 
 
 /***/ },
-/* 168 */
+/* 169 */
 /*!*********************************************!*\
   !*** ./~/socket.io-parser/~/debug/debug.js ***!
   \*********************************************/
@@ -21886,7 +22341,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(/*! ms */ 169);
+	exports.humanize = __webpack_require__(/*! ms */ 170);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -22073,7 +22528,7 @@
 
 
 /***/ },
-/* 169 */
+/* 170 */
 /*!******************************************!*\
   !*** ./~/socket.io-parser/~/ms/index.js ***!
   \******************************************/
@@ -22207,7 +22662,7 @@
 
 
 /***/ },
-/* 170 */
+/* 171 */
 /*!******************************!*\
   !*** ./~/json3/lib/json3.js ***!
   \******************************/
@@ -22217,7 +22672,7 @@
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(/*! !webpack amd options */ 172);
+	  var isLoader = "function" === "function" && __webpack_require__(/*! !webpack amd options */ 173);
 	
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -23116,10 +23571,10 @@
 	  }
 	}).call(this);
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../webpack/buildin/module.js */ 171)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../webpack/buildin/module.js */ 172)(module), (function() { return this; }())))
 
 /***/ },
-/* 171 */
+/* 172 */
 /*!***********************************!*\
   !*** (webpack)/buildin/module.js ***!
   \***********************************/
@@ -23138,7 +23593,7 @@
 
 
 /***/ },
-/* 172 */
+/* 173 */
 /*!****************************************!*\
   !*** (webpack)/buildin/amd-options.js ***!
   \****************************************/
@@ -23149,7 +23604,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 173 */
+/* 174 */
 /*!**************************************!*\
   !*** ./~/component-emitter/index.js ***!
   \**************************************/
@@ -23322,7 +23777,7 @@
 
 
 /***/ },
-/* 174 */
+/* 175 */
 /*!**************************************!*\
   !*** ./~/socket.io-parser/binary.js ***!
   \**************************************/
@@ -23334,8 +23789,8 @@
 	 * Module requirements
 	 */
 	
-	var isArray = __webpack_require__(/*! isarray */ 175);
-	var isBuf = __webpack_require__(/*! ./is-buffer */ 176);
+	var isArray = __webpack_require__(/*! isarray */ 176);
+	var isBuf = __webpack_require__(/*! ./is-buffer */ 177);
 	
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -23473,7 +23928,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 175 */
+/* 176 */
 /*!***********************************************!*\
   !*** ./~/socket.io-parser/~/isarray/index.js ***!
   \***********************************************/
@@ -23485,7 +23940,7 @@
 
 
 /***/ },
-/* 176 */
+/* 177 */
 /*!*****************************************!*\
   !*** ./~/socket.io-parser/is-buffer.js ***!
   \*****************************************/
@@ -23508,7 +23963,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 177 */
+/* 178 */
 /*!*******************************************!*\
   !*** ./~/socket.io-client/lib/manager.js ***!
   \*******************************************/
@@ -23519,15 +23974,15 @@
 	 * Module dependencies.
 	 */
 	
-	var eio = __webpack_require__(/*! engine.io-client */ 178);
-	var Socket = __webpack_require__(/*! ./socket */ 207);
-	var Emitter = __webpack_require__(/*! component-emitter */ 208);
-	var parser = __webpack_require__(/*! socket.io-parser */ 166);
-	var on = __webpack_require__(/*! ./on */ 210);
-	var bind = __webpack_require__(/*! component-bind */ 211);
-	var debug = __webpack_require__(/*! debug */ 163)('socket.io-client:manager');
-	var indexOf = __webpack_require__(/*! indexof */ 205);
-	var Backoff = __webpack_require__(/*! backo2 */ 212);
+	var eio = __webpack_require__(/*! engine.io-client */ 179);
+	var Socket = __webpack_require__(/*! ./socket */ 208);
+	var Emitter = __webpack_require__(/*! component-emitter */ 209);
+	var parser = __webpack_require__(/*! socket.io-parser */ 167);
+	var on = __webpack_require__(/*! ./on */ 211);
+	var bind = __webpack_require__(/*! component-bind */ 212);
+	var debug = __webpack_require__(/*! debug */ 164)('socket.io-client:manager');
+	var indexOf = __webpack_require__(/*! indexof */ 206);
+	var Backoff = __webpack_require__(/*! backo2 */ 213);
 	
 	/**
 	 * IE6+ hasOwnProperty
@@ -24077,25 +24532,25 @@
 
 
 /***/ },
-/* 178 */
+/* 179 */
 /*!*************************************!*\
   !*** ./~/engine.io-client/index.js ***!
   \*************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(/*! ./lib/index */ 179);
+	module.exports = __webpack_require__(/*! ./lib/index */ 180);
 
 
 /***/ },
-/* 179 */
+/* 180 */
 /*!*****************************************!*\
   !*** ./~/engine.io-client/lib/index.js ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(/*! ./socket */ 180);
+	module.exports = __webpack_require__(/*! ./socket */ 181);
 	
 	/**
 	 * Exports parser
@@ -24103,11 +24558,11 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(/*! engine.io-parser */ 187);
+	module.exports.parser = __webpack_require__(/*! engine.io-parser */ 188);
 
 
 /***/ },
-/* 180 */
+/* 181 */
 /*!******************************************!*\
   !*** ./~/engine.io-client/lib/socket.js ***!
   \******************************************/
@@ -24117,14 +24572,14 @@
 	 * Module dependencies.
 	 */
 	
-	var transports = __webpack_require__(/*! ./transports/index */ 181);
-	var Emitter = __webpack_require__(/*! component-emitter */ 196);
-	var debug = __webpack_require__(/*! debug */ 200)('engine.io-client:socket');
-	var index = __webpack_require__(/*! indexof */ 205);
-	var parser = __webpack_require__(/*! engine.io-parser */ 187);
-	var parseuri = __webpack_require__(/*! parseuri */ 162);
-	var parsejson = __webpack_require__(/*! parsejson */ 206);
-	var parseqs = __webpack_require__(/*! parseqs */ 197);
+	var transports = __webpack_require__(/*! ./transports/index */ 182);
+	var Emitter = __webpack_require__(/*! component-emitter */ 197);
+	var debug = __webpack_require__(/*! debug */ 201)('engine.io-client:socket');
+	var index = __webpack_require__(/*! indexof */ 206);
+	var parser = __webpack_require__(/*! engine.io-parser */ 188);
+	var parseuri = __webpack_require__(/*! parseuri */ 163);
+	var parsejson = __webpack_require__(/*! parsejson */ 207);
+	var parseqs = __webpack_require__(/*! parseqs */ 198);
 	
 	/**
 	 * Module exports.
@@ -24256,9 +24711,9 @@
 	 */
 	
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(/*! ./transport */ 186);
-	Socket.transports = __webpack_require__(/*! ./transports/index */ 181);
-	Socket.parser = __webpack_require__(/*! engine.io-parser */ 187);
+	Socket.Transport = __webpack_require__(/*! ./transport */ 187);
+	Socket.transports = __webpack_require__(/*! ./transports/index */ 182);
+	Socket.parser = __webpack_require__(/*! engine.io-parser */ 188);
 	
 	/**
 	 * Creates transport of the given type.
@@ -24855,7 +25310,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 181 */
+/* 182 */
 /*!****************************************************!*\
   !*** ./~/engine.io-client/lib/transports/index.js ***!
   \****************************************************/
@@ -24865,10 +25320,10 @@
 	 * Module dependencies
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 182);
-	var XHR = __webpack_require__(/*! ./polling-xhr */ 184);
-	var JSONP = __webpack_require__(/*! ./polling-jsonp */ 202);
-	var websocket = __webpack_require__(/*! ./websocket */ 203);
+	var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 183);
+	var XHR = __webpack_require__(/*! ./polling-xhr */ 185);
+	var JSONP = __webpack_require__(/*! ./polling-jsonp */ 203);
+	var websocket = __webpack_require__(/*! ./websocket */ 204);
 	
 	/**
 	 * Export transports.
@@ -24918,7 +25373,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 182 */
+/* 183 */
 /*!**************************************************!*\
   !*** ./~/engine.io-client/lib/xmlhttprequest.js ***!
   \**************************************************/
@@ -24926,7 +25381,7 @@
 
 	/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
 	
-	var hasCORS = __webpack_require__(/*! has-cors */ 183);
+	var hasCORS = __webpack_require__(/*! has-cors */ 184);
 	
 	module.exports = function (opts) {
 	  var xdomain = opts.xdomain;
@@ -24965,7 +25420,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 183 */
+/* 184 */
 /*!*****************************!*\
   !*** ./~/has-cors/index.js ***!
   \*****************************/
@@ -24991,7 +25446,7 @@
 
 
 /***/ },
-/* 184 */
+/* 185 */
 /*!**********************************************************!*\
   !*** ./~/engine.io-client/lib/transports/polling-xhr.js ***!
   \**********************************************************/
@@ -25001,11 +25456,11 @@
 	 * Module requirements.
 	 */
 	
-	var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 182);
-	var Polling = __webpack_require__(/*! ./polling */ 185);
-	var Emitter = __webpack_require__(/*! component-emitter */ 196);
-	var inherit = __webpack_require__(/*! component-inherit */ 198);
-	var debug = __webpack_require__(/*! debug */ 200)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 183);
+	var Polling = __webpack_require__(/*! ./polling */ 186);
+	var Emitter = __webpack_require__(/*! component-emitter */ 197);
+	var inherit = __webpack_require__(/*! component-inherit */ 199);
+	var debug = __webpack_require__(/*! debug */ 201)('engine.io-client:polling-xhr');
 	
 	/**
 	 * Module exports.
@@ -25425,7 +25880,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 185 */
+/* 186 */
 /*!******************************************************!*\
   !*** ./~/engine.io-client/lib/transports/polling.js ***!
   \******************************************************/
@@ -25435,12 +25890,12 @@
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(/*! ../transport */ 186);
-	var parseqs = __webpack_require__(/*! parseqs */ 197);
-	var parser = __webpack_require__(/*! engine.io-parser */ 187);
-	var inherit = __webpack_require__(/*! component-inherit */ 198);
-	var yeast = __webpack_require__(/*! yeast */ 199);
-	var debug = __webpack_require__(/*! debug */ 200)('engine.io-client:polling');
+	var Transport = __webpack_require__(/*! ../transport */ 187);
+	var parseqs = __webpack_require__(/*! parseqs */ 198);
+	var parser = __webpack_require__(/*! engine.io-parser */ 188);
+	var inherit = __webpack_require__(/*! component-inherit */ 199);
+	var yeast = __webpack_require__(/*! yeast */ 200);
+	var debug = __webpack_require__(/*! debug */ 201)('engine.io-client:polling');
 	
 	/**
 	 * Module exports.
@@ -25453,7 +25908,7 @@
 	 */
 	
 	var hasXHR2 = (function () {
-	  var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 182);
+	  var XMLHttpRequest = __webpack_require__(/*! xmlhttprequest-ssl */ 183);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -25679,7 +26134,7 @@
 
 
 /***/ },
-/* 186 */
+/* 187 */
 /*!*********************************************!*\
   !*** ./~/engine.io-client/lib/transport.js ***!
   \*********************************************/
@@ -25689,8 +26144,8 @@
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(/*! engine.io-parser */ 187);
-	var Emitter = __webpack_require__(/*! component-emitter */ 196);
+	var parser = __webpack_require__(/*! engine.io-parser */ 188);
+	var Emitter = __webpack_require__(/*! component-emitter */ 197);
 	
 	/**
 	 * Module exports.
@@ -25845,7 +26300,7 @@
 
 
 /***/ },
-/* 187 */
+/* 188 */
 /*!*******************************************!*\
   !*** ./~/engine.io-parser/lib/browser.js ***!
   \*******************************************/
@@ -25855,15 +26310,15 @@
 	 * Module dependencies.
 	 */
 	
-	var keys = __webpack_require__(/*! ./keys */ 188);
-	var hasBinary = __webpack_require__(/*! has-binary */ 189);
-	var sliceBuffer = __webpack_require__(/*! arraybuffer.slice */ 191);
-	var after = __webpack_require__(/*! after */ 192);
-	var utf8 = __webpack_require__(/*! wtf-8 */ 193);
+	var keys = __webpack_require__(/*! ./keys */ 189);
+	var hasBinary = __webpack_require__(/*! has-binary */ 190);
+	var sliceBuffer = __webpack_require__(/*! arraybuffer.slice */ 192);
+	var after = __webpack_require__(/*! after */ 193);
+	var utf8 = __webpack_require__(/*! wtf-8 */ 194);
 	
 	var base64encoder;
 	if (global && global.ArrayBuffer) {
-	  base64encoder = __webpack_require__(/*! base64-arraybuffer */ 194);
+	  base64encoder = __webpack_require__(/*! base64-arraybuffer */ 195);
 	}
 	
 	/**
@@ -25921,7 +26376,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 	
-	var Blob = __webpack_require__(/*! blob */ 195);
+	var Blob = __webpack_require__(/*! blob */ 196);
 	
 	/**
 	 * Encodes a packet.
@@ -26464,7 +26919,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 188 */
+/* 189 */
 /*!****************************************!*\
   !*** ./~/engine.io-parser/lib/keys.js ***!
   \****************************************/
@@ -26492,7 +26947,7 @@
 
 
 /***/ },
-/* 189 */
+/* 190 */
 /*!*******************************!*\
   !*** ./~/has-binary/index.js ***!
   \*******************************/
@@ -26503,7 +26958,7 @@
 	 * Module requirements.
 	 */
 	
-	var isArray = __webpack_require__(/*! isarray */ 190);
+	var isArray = __webpack_require__(/*! isarray */ 191);
 	
 	/**
 	 * Module exports.
@@ -26561,7 +27016,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 190 */
+/* 191 */
 /*!*****************************************!*\
   !*** ./~/has-binary/~/isarray/index.js ***!
   \*****************************************/
@@ -26573,7 +27028,7 @@
 
 
 /***/ },
-/* 191 */
+/* 192 */
 /*!**************************************!*\
   !*** ./~/arraybuffer.slice/index.js ***!
   \**************************************/
@@ -26611,7 +27066,7 @@
 
 
 /***/ },
-/* 192 */
+/* 193 */
 /*!**************************!*\
   !*** ./~/after/index.js ***!
   \**************************/
@@ -26648,7 +27103,7 @@
 
 
 /***/ },
-/* 193 */
+/* 194 */
 /*!**************************!*\
   !*** ./~/wtf-8/wtf-8.js ***!
   \**************************/
@@ -26887,10 +27342,10 @@
 	
 	}(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../webpack/buildin/module.js */ 171)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../webpack/buildin/module.js */ 172)(module), (function() { return this; }())))
 
 /***/ },
-/* 194 */
+/* 195 */
 /*!********************************************************!*\
   !*** ./~/base64-arraybuffer/lib/base64-arraybuffer.js ***!
   \********************************************************/
@@ -26966,7 +27421,7 @@
 
 
 /***/ },
-/* 195 */
+/* 196 */
 /*!*************************!*\
   !*** ./~/blob/index.js ***!
   \*************************/
@@ -27072,7 +27527,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 196 */
+/* 197 */
 /*!*********************************************************!*\
   !*** ./~/engine.io-client/~/component-emitter/index.js ***!
   \*********************************************************/
@@ -27244,7 +27699,7 @@
 
 
 /***/ },
-/* 197 */
+/* 198 */
 /*!****************************!*\
   !*** ./~/parseqs/index.js ***!
   \****************************/
@@ -27290,7 +27745,7 @@
 
 
 /***/ },
-/* 198 */
+/* 199 */
 /*!**************************************!*\
   !*** ./~/component-inherit/index.js ***!
   \**************************************/
@@ -27305,7 +27760,7 @@
 	};
 
 /***/ },
-/* 199 */
+/* 200 */
 /*!**************************!*\
   !*** ./~/yeast/index.js ***!
   \**************************/
@@ -27382,7 +27837,7 @@
 
 
 /***/ },
-/* 200 */
+/* 201 */
 /*!***********************************************!*\
   !*** ./~/engine.io-client/~/debug/browser.js ***!
   \***********************************************/
@@ -27395,7 +27850,7 @@
 	 * Expose `debug()` as the module.
 	 */
 	
-	exports = module.exports = __webpack_require__(/*! ./debug */ 201);
+	exports = module.exports = __webpack_require__(/*! ./debug */ 202);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -27569,7 +28024,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../../process/browser.js */ 4)))
 
 /***/ },
-/* 201 */
+/* 202 */
 /*!*********************************************!*\
   !*** ./~/engine.io-client/~/debug/debug.js ***!
   \*********************************************/
@@ -27588,7 +28043,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(/*! ms */ 165);
+	exports.humanize = __webpack_require__(/*! ms */ 166);
 	
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -27778,7 +28233,7 @@
 
 
 /***/ },
-/* 202 */
+/* 203 */
 /*!************************************************************!*\
   !*** ./~/engine.io-client/lib/transports/polling-jsonp.js ***!
   \************************************************************/
@@ -27789,8 +28244,8 @@
 	 * Module requirements.
 	 */
 	
-	var Polling = __webpack_require__(/*! ./polling */ 185);
-	var inherit = __webpack_require__(/*! component-inherit */ 198);
+	var Polling = __webpack_require__(/*! ./polling */ 186);
+	var inherit = __webpack_require__(/*! component-inherit */ 199);
 	
 	/**
 	 * Module exports.
@@ -28019,7 +28474,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 203 */
+/* 204 */
 /*!********************************************************!*\
   !*** ./~/engine.io-client/lib/transports/websocket.js ***!
   \********************************************************/
@@ -28029,17 +28484,17 @@
 	 * Module dependencies.
 	 */
 	
-	var Transport = __webpack_require__(/*! ../transport */ 186);
-	var parser = __webpack_require__(/*! engine.io-parser */ 187);
-	var parseqs = __webpack_require__(/*! parseqs */ 197);
-	var inherit = __webpack_require__(/*! component-inherit */ 198);
-	var yeast = __webpack_require__(/*! yeast */ 199);
-	var debug = __webpack_require__(/*! debug */ 200)('engine.io-client:websocket');
+	var Transport = __webpack_require__(/*! ../transport */ 187);
+	var parser = __webpack_require__(/*! engine.io-parser */ 188);
+	var parseqs = __webpack_require__(/*! parseqs */ 198);
+	var inherit = __webpack_require__(/*! component-inherit */ 199);
+	var yeast = __webpack_require__(/*! yeast */ 200);
+	var debug = __webpack_require__(/*! debug */ 201)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 	var NodeWebSocket;
 	if (typeof window === 'undefined') {
 	  try {
-	    NodeWebSocket = __webpack_require__(/*! ws */ 204);
+	    NodeWebSocket = __webpack_require__(/*! ws */ 205);
 	  } catch (e) { }
 	}
 	
@@ -28314,7 +28769,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 204 */
+/* 205 */
 /*!********************!*\
   !*** ws (ignored) ***!
   \********************/
@@ -28323,7 +28778,7 @@
 	/* (ignored) */
 
 /***/ },
-/* 205 */
+/* 206 */
 /*!****************************!*\
   !*** ./~/indexof/index.js ***!
   \****************************/
@@ -28341,7 +28796,7 @@
 	};
 
 /***/ },
-/* 206 */
+/* 207 */
 /*!******************************!*\
   !*** ./~/parsejson/index.js ***!
   \******************************/
@@ -28382,7 +28837,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 207 */
+/* 208 */
 /*!******************************************!*\
   !*** ./~/socket.io-client/lib/socket.js ***!
   \******************************************/
@@ -28393,13 +28848,13 @@
 	 * Module dependencies.
 	 */
 	
-	var parser = __webpack_require__(/*! socket.io-parser */ 166);
-	var Emitter = __webpack_require__(/*! component-emitter */ 208);
-	var toArray = __webpack_require__(/*! to-array */ 209);
-	var on = __webpack_require__(/*! ./on */ 210);
-	var bind = __webpack_require__(/*! component-bind */ 211);
-	var debug = __webpack_require__(/*! debug */ 163)('socket.io-client:socket');
-	var hasBin = __webpack_require__(/*! has-binary */ 189);
+	var parser = __webpack_require__(/*! socket.io-parser */ 167);
+	var Emitter = __webpack_require__(/*! component-emitter */ 209);
+	var toArray = __webpack_require__(/*! to-array */ 210);
+	var on = __webpack_require__(/*! ./on */ 211);
+	var bind = __webpack_require__(/*! component-bind */ 212);
+	var debug = __webpack_require__(/*! debug */ 164)('socket.io-client:socket');
+	var hasBin = __webpack_require__(/*! has-binary */ 190);
 	
 	/**
 	 * Module exports.
@@ -28810,7 +29265,7 @@
 
 
 /***/ },
-/* 208 */
+/* 209 */
 /*!*********************************************************!*\
   !*** ./~/socket.io-client/~/component-emitter/index.js ***!
   \*********************************************************/
@@ -28982,7 +29437,7 @@
 
 
 /***/ },
-/* 209 */
+/* 210 */
 /*!*****************************!*\
   !*** ./~/to-array/index.js ***!
   \*****************************/
@@ -29004,7 +29459,7 @@
 
 
 /***/ },
-/* 210 */
+/* 211 */
 /*!**************************************!*\
   !*** ./~/socket.io-client/lib/on.js ***!
   \**************************************/
@@ -29037,7 +29492,7 @@
 
 
 /***/ },
-/* 211 */
+/* 212 */
 /*!***********************************!*\
   !*** ./~/component-bind/index.js ***!
   \***********************************/
@@ -29069,7 +29524,7 @@
 
 
 /***/ },
-/* 212 */
+/* 213 */
 /*!***************************!*\
   !*** ./~/backo2/index.js ***!
   \***************************/

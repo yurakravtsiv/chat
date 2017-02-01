@@ -1,84 +1,53 @@
 import React from 'react';
 import {render} from 'react-dom';
-import AwesomeComponent from './AwesomeComponent.jsx';
-const io = require('socket.io-client')
-const socket = io()
+import Whiteboard from './Whiteboard.jsx';
+import Chat from './Chat.jsx';
+const io = require('socket.io-client');
+const socket = io();
 
 class App extends React.Component {
 
-	logger(msg) {
-		$("#logger").text(msg);
-	}
-
 	stream() {
-		$("#cvideostream").show();
-		$("#canvasstream").show();
+		// $("#cvideostream").show();
 		var canv = document.getElementById("cvideostream"),
 		context = canv.getContext("2d"),
 		video = document.getElementById("vvideostream"),
 		freq = 10;
 
-		canv.width = 320 ;
+		canv.width = 320;
 		canv.height = 240;
 		
 		context.width = canv.width;
 		context.height = canv.height;
 
-
-
-		var mycanv = document.getElementById("canvasstream");
-		var canvas = mycanv;
-		var ctx = canvas.getContext('2d');
-		
-		// canvas.width = $(window).width() ;
-		// canvas.height = $(window).height();
-		canvas.width = 640;
-		canvas.height = 480;
-
-		var mouse = {x: 0, y: 0};
-		 
-		/* Mouse Capturing Work */
-		canvas.addEventListener('mousemove', function(e) {
-			mouse.x = e.pageX - this.offsetLeft;
-			mouse.y = e.pageY - this.offsetTop;
-		}, false);
-		
-		/* Drawing on Paint App */
-		ctx.lineWidth = 5;
-		ctx.lineJoin = 'round';
-		ctx.lineCap = 'round';
-		ctx.strokeStyle = 'blue';
-		 
-		canvas.addEventListener('mousedown', function(e) {
-				ctx.beginPath();
-				ctx.moveTo(mouse.x, mouse.y);
-		 
-				canvas.addEventListener('mousemove', onPaint, false);
-		}, false);
-		 
-		canvas.addEventListener('mouseup', function() {
-				canvas.removeEventListener('mousemove', onPaint, false);
-		}, false);
-		 
-		var onPaint = function() {
-				ctx.lineTo(mouse.x, mouse.y);
-				ctx.stroke();
-		};
-
 		function loadCam(stream) {
 			video.src = window.URL.createObjectURL(stream);
-			// logger("Camera loaded [OKAY]");
+			video.volume = 0;
+			video.controls = true;
+			console.log("Camera loaded");
+
+			// var mediaRecorder = new MediaRecorder(stream);
+		 //    mediaRecorder.onstart = function(e) {
+		 //        this.chunks = [];
+		 //    };
+		 //    mediaRecorder.ondataavailable = function(e) {
+		 //    	//console.log(this.chunks);
+		 //        this.chunks.push(e.data);
+		 //    	var blob = new Blob(this.chunks, { 'type' : 'video/webm; codecs="vorbis,vp8"' });
+		 //        socket.emit('stream', blob);
+		 //        //console.log(blob);
+		 //    };
+
+		 //    mediaRecorder.start(3000);
 		}
 		
 		function loadFail(stream) {
-			// logger("Failed loading camera");
+			console.log("Failed loading camera");
 		}
 		
 		function viewVideo(video, context) {
 			context.drawImage(video, 0, 0, context.width, context.height);
-			socket.emit("stream", canv.toDataURL("video/webp"));
-			// debugger;
-			socket.emit("canvstream", mycanv.toDataURL("image/webp"));
+			socket.emit("teststream", canv.toDataURL("img/webp"));
 		}
 		
 		$(function() {
@@ -87,7 +56,7 @@ class App extends React.Component {
                          navigator.mozGetUserMedia;
 			
 			if(navigator.getUserMedia) {
-				navigator.getUserMedia({video: true}, loadCam, loadFail);
+				navigator.getUserMedia({video: true, audio:true}, loadCam, loadFail);
 			}
 			setInterval(function() {
 				viewVideo(video, context);
@@ -99,45 +68,52 @@ class App extends React.Component {
 		$("#videoview").show();
 		$("#canvview").show();
 		var img = document.getElementById("canvview");
-		img.width = $(window).width();
-		img.height = $(window).height();
-		// logger("Waiting stream..");
-		socket.on("stream", function (video) {
+		img.width = 320;
+		img.height = 240;
+		console.log("Waiting stream..");
+
+	    socket.on('stream', function (arrayBuffer) 
+	    {
+	    	console.log("start");
 			var vid = document.getElementById("videoview");
-			vid.src = video;
-			// logger("Stream is started");
-		});
-		socket.on("canvstream", function (canvimg) {
+			vid.controls = true;
+	        var blob = new Blob([arrayBuffer], {'type' : 'video/webm; codecs="vorbis,vp8"'});
+	        
+	        socket.emit('stream', blob);
+	        vid.src = window.URL.createObjectURL(blob);
+	        console.log(blob);
+	        if (vid.paused) {
+	        	vid.play();
+	        }
+	    });
+
+		socket.on("teststream", function (canvimg) {
 			img.src = canvimg;
-			// logger("Stream is started");
 		});
 	}
 
-	
+
+    render () {
+		return (
+			<div>
+				<button className="viewBtn" onClick={this.view}>view</button>
+				<button className="streamBtn" onClick={this.stream}>stream</button>
+
+				<Whiteboard />
+				<Chat />
 
 
-  render () {
-    return (
-      <div>
-        <p> Hello React!</p>
-        {/* 
-        	<AwesomeComponent />
-        */}
+				<video id="vvideostream" autoPlay> </video>
+				<canvas id="cvideostream"></canvas>
+				<canvas id="canvasstream"></canvas>
 
-        <button className="viewBtn" onClick={this.view}>view</button>
-		<button className="streamBtn" onClick={this.stream}>stream</button>
-
-		<div id="logger"></div>
-
-		<video id="vvideostream"> </video>
-		<canvas id="cvideostream"></canvas>
-		<canvas id="canvasstream"></canvas>
-
-		<img id="videoview" />
-		<img id="canvview" />
-      </div>
-    );
-  }
+				<video id="videoview" autoPlay></video>
+				<img id="canvview" />
+			</div>
+		);
+	}
 }
+
+
 
 render(<App/>, document.getElementById('app'));
