@@ -234,10 +234,10 @@ class Chat extends React.Component {
       socket.on('login', function (data) {
         connected = true;
         // Display the welcome message
-        var message = "Welcome to Socket.IO Chat – ";
-        log(message, {
-          prepend: true
-        });
+        // var message = "Welcome to Socket.IO Chat – ";
+        // log(message, {
+        //   prepend: true
+        // });
         addParticipantsMessage(data);
       });
 
