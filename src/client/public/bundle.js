@@ -74,7 +74,22 @@
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
 	var io = __webpack_require__(/*! socket.io-client */ 161);
-	var socket = io();
+	var socket = io.connect('', { port: 8888 });
+	// const socket = io();
+	
+	var PeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+	var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
+	var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
+	// navigator.getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+	
+	var pc; // PeerConnection
+	
+	var pc_config = { "iceServers": [{ "url": "stun:stun.l.google.com:19302" }] };
+	pc = new PeerConnection(pc_config);
+	
+	function sendMessage(message) {
+		socket.emit('message', message);
+	}
 	
 	var App = function (_React$Component) {
 		_inherits(App, _React$Component);
@@ -86,116 +101,106 @@
 		}
 	
 		_createClass(App, [{
-			key: 'stream',
-			value: function stream() {
-				// $("#cvideostream").show();
-				var canv = document.getElementById("cvideostream"),
-				    context = canv.getContext("2d"),
-				    video = document.getElementById("vvideostream"),
-				    freq = 10;
-	
-				canv.width = 320;
-				canv.height = 240;
-	
-				context.width = canv.width;
-				context.height = canv.height;
-	
-				function loadCam(stream) {
-					video.src = window.URL.createObjectURL(stream);
-					video.volume = 0;
-					video.controls = true;
-					console.log("Camera loaded");
-	
-					// var mediaRecorder = new MediaRecorder(stream);
-					//    mediaRecorder.onstart = function(e) {
-					//        this.chunks = [];
-					//    };
-					//    mediaRecorder.ondataavailable = function(e) {
-					//    	//console.log(this.chunks);
-					//        this.chunks.push(e.data);
-					//    	var blob = new Blob(this.chunks, { 'type' : 'video/webm; codecs="vorbis,vp8"' });
-					//        socket.emit('stream', blob);
-					//        //console.log(blob);
-					//    };
-	
-					//    mediaRecorder.start(3000);
-				}
-	
-				function loadFail(stream) {
-					console.log("Failed loading camera");
-				}
-	
-				function viewVideo(video, context) {
-					context.drawImage(video, 0, 0, context.width, context.height);
-					socket.emit("teststream", canv.toDataURL("img/webp"));
-				}
+			key: 'gotStream',
+			value: function gotStream(stream) {
+				var self = this;
 	
 				$(function () {
 					navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 	
-					if (navigator.getUserMedia) {
-						navigator.getUserMedia({ video: true, audio: true }, loadCam, loadFail);
+					navigator.getUserMedia({ audio: true, video: true }, function (stream) {
+						// document.getElementById("callButton").style.display = 'inline-block';
+						document.getElementById("localVideo").src = URL.createObjectURL(stream);
+	
+						pc.addStream(stream);
+						pc.onicecandidate = self.gotIceCandidate;
+						pc.onaddstream = self.gotRemoteStream;
+					}, function (error) {
+						console.log(error);
+					});
+				});
+	
+				socket.on('message', function (message) {
+					if (message.type === 'offer') {
+						pc.setRemoteDescription(new SessionDescription(message));
+						self.createAnswer();
+					} else if (message.type === 'answer') {
+						pc.setRemoteDescription(new SessionDescription(message));
+					} else if (message.type === 'candidate') {
+						var candidate = new IceCandidate({ sdpMLineIndex: message.label, candidate: message.candidate });
+						pc.addIceCandidate(candidate);
 					}
-					setInterval(function () {
-						viewVideo(video, context);
-					}, freq * 10);
 				});
 			}
+	
+			// Step 2. createOffer
+	
 		}, {
-			key: 'view',
-			value: function view() {
-				$("#videoview").show();
-				$("#canvview").show();
-				var img = document.getElementById("canvview");
-				img.width = 320;
-				img.height = 240;
-				console.log("Waiting stream..");
+			key: 'createOffer',
+			value: function createOffer() {
+				var self = this;
+				pc.createOffer(gotLocalDescription, function (error) {
+					console.log(error);
+				}, { 'mandatory': { 'OfferToReceiveAudio': true, 'OfferToReceiveVideo': true } });
 	
-				socket.on('stream', function (arrayBuffer) {
-					console.log("start");
-					var vid = document.getElementById("videoview");
-					vid.controls = true;
-					var blob = new Blob([arrayBuffer], { 'type': 'video/webm; codecs="vorbis,vp8"' });
+				function gotLocalDescription(description) {
+					pc.setLocalDescription(description);
+					sendMessage(description);
+				}
+			}
 	
-					socket.emit('stream', blob);
-					vid.src = window.URL.createObjectURL(blob);
-					console.log(blob);
-					if (vid.paused) {
-						vid.play();
-					}
-				});
+			// Step 3. createAnswer
 	
-				socket.on("teststream", function (canvimg) {
-					img.src = canvimg;
-				});
+		}, {
+			key: 'createAnswer',
+			value: function createAnswer() {
+	
+				var self = this;
+				pc.createAnswer(gotLocalDescription, function (error) {
+					console.log(error);
+				}, { 'mandatory': { 'OfferToReceiveAudio': true, 'OfferToReceiveVideo': true } });
+	
+				function gotLocalDescription(description) {
+					pc.setLocalDescription(description);
+					sendMessage(description);
+				}
+			}
+		}, {
+			key: 'gotLocalDescription',
+			value: function gotLocalDescription(description) {
+				pc.setLocalDescription(description);
+				sendMessage(description);
+			}
+		}, {
+			key: 'gotIceCandidate',
+			value: function gotIceCandidate(event) {
+				if (event.candidate) {
+					sendMessage({
+						type: 'candidate',
+						label: event.candidate.sdpMLineIndex,
+						id: event.candidate.sdpMid,
+						candidate: event.candidate.candidate
+					});
+				}
+			}
+		}, {
+			key: 'gotRemoteStream',
+			value: function gotRemoteStream(event) {
+				document.getElementById("remoteVideo").src = URL.createObjectURL(event.stream);
 			}
 		}, {
 			key: 'render',
 			value: function render() {
+				this.gotStream();
+	
 				return _react2.default.createElement(
 					'div',
 					null,
-					_react2.default.createElement(
-						'button',
-						{ className: 'viewBtn', onClick: this.view },
-						'view'
-					),
-					_react2.default.createElement(
-						'button',
-						{ className: 'streamBtn', onClick: this.stream },
-						'stream'
-					),
+					_react2.default.createElement('video', { id: 'localVideo', autoPlay: true, muted: true }),
+					_react2.default.createElement('video', { id: 'remoteVideo', autoPlay: true }),
+					_react2.default.createElement('button', { id: 'callButton', onClick: this.createOffer }),
 					_react2.default.createElement(_Whiteboard2.default, null),
-					_react2.default.createElement(_Chat2.default, null),
-					_react2.default.createElement(
-						'video',
-						{ id: 'vvideostream', autoPlay: true },
-						' '
-					),
-					_react2.default.createElement('canvas', { id: 'cvideostream' }),
-					_react2.default.createElement('canvas', { id: 'canvasstream' }),
-					_react2.default.createElement('video', { id: 'videoview', autoPlay: true }),
-					_react2.default.createElement('img', { id: 'canvview' })
+					_react2.default.createElement(_Chat2.default, null)
 				);
 			}
 		}]);
