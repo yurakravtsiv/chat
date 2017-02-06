@@ -101,17 +101,6 @@ class Whiteboard extends React.Component {
     });
   }
 
-  constructor(props) {
-    super(props);
-    this.state = {likesCount : 0};
-    this.onLike = this.onLike.bind(this);
-  }
-
-  onLike () {
-    let newLikesCount = this.state.likesCount + 1;
-    this.setState({likesCount: newLikesCount});
-  }
-
   showColorPanel() {
     if( $('.colors').css('display') == "none" ) $(".chooseColorBtn").animate({left: '245px'},"fast");
     else $(".chooseColorBtn").animate({left: '10px'})
